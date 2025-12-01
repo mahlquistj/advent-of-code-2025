@@ -21,7 +21,9 @@ fn main() {
 }
 
 fn day1(input: &str) {
-    let instructions = day1::DialInstructions::parse(input).unwrap();
+    let instructions = time!("day1#parse", {
+        day1::DialInstructions::parse(input).unwrap()
+    });
 
     // Solution 1
     let mut counter = 0;
