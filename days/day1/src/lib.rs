@@ -28,11 +28,14 @@ impl DialInstructions {
 
     pub fn apply_to_lock_with_fn<F>(&self, lock: &mut DialLock, mut f: F)
     where
-        F: FnMut(i16),
+        F: FnMut(i16, i16),
     {
+        println!("INIT: {lock:#?}");
         self.instructions.iter().for_each(|rotation| {
-            lock.rotate(rotation);
-            f(lock.current);
+            let resets = lock.rotate(rotation);
+            let current = lock.current;
+            println!("{rotation:?} | Lock: {current} | Resets: {resets}");
+            f(current, resets);
         });
     }
 }
@@ -60,6 +63,7 @@ impl FromStr for Rotation {
     }
 }
 
+#[derive(Debug)]
 pub struct DialLock {
     current: i16,
     max: i16,
@@ -77,24 +81,54 @@ impl DialLock {
         self.current
     }
 
-    pub fn rotate(&mut self, rotation: &Rotation) {
-        match dbg!(rotation) {
+    // Rotates the lock and returns the amount of times the lock rotated PAST zero
+    pub fn rotate(&mut self, rotation: &Rotation) -> i16 {
+        let mut resets = 0;
+        let started_at = self.current;
+
+        match rotation {
             // Right-rotations are addition
             Rotation::Right(amount) => {
-                let new = amount + self.current;
-                self.current = new % (self.max + 1);
+                // Add full-rotations to resets
+                resets += amount / (self.max + 1);
+
+                // Add remainder after rotations to current value
+                let rem = amount % (self.max + 1);
+                self.current += rem;
+
+                if self.max < self.current {
+                    // Make sure we only are equal to the remainder of the overflow
+                    self.current %= self.max + 1;
+
+                    // If we went over zero, then add another reset
+                    if self.current != 0 {
+                        resets += 1;
+                    }
+                }
             }
             // Left-rotation are subtraction
             Rotation::Left(amount) => {
+                // Add full rotations to resets
+                resets += amount / (self.max + 1);
+
+                // Subtract remainder after rotations from the current value
                 let rem = amount % (self.max + 1);
                 self.current -= rem;
+
                 if 0 > self.current {
+                    // Make sure we only are equal to the remainder of the underflow
                     let overflow = self.current.abs_diff(0) as i16;
                     self.current = self.max - (overflow - 1);
+
+                    // Add another reset
+                    if self.current != 0 && started_at != 0 {
+                        resets += 1;
+                    }
                 }
             }
         }
-        dbg!(self.current);
+
+        resets
     }
 }
 
@@ -116,12 +150,54 @@ L82
     "#;
 
     #[test]
-    fn whole_rotations() {
+    fn full_rotations() {
+        let mut lock = DialLock::new(10, 99);
+        assert_eq!(lock.rotate(&Rotation::Right(300)), 3);
+        assert_eq!(lock.current, 10);
+        assert_eq!(lock.rotate(&Rotation::Left(300)), 3);
+        assert_eq!(lock.current, 10);
+    }
+
+    #[test]
+    fn from_zero() {
+        let mut lock = DialLock::new(0, 99);
+        assert_eq!(lock.rotate(&Rotation::Right(10)), 0);
+        assert_eq!(lock.current, 10);
+
+        let mut lock = DialLock::new(0, 99);
+        assert_eq!(lock.rotate(&Rotation::Left(10)), 0);
+        assert_eq!(lock.current, 90);
+    }
+
+    #[test]
+    fn past_zero() {
+        let mut lock = DialLock::new(10, 99);
+        assert_eq!(lock.rotate(&Rotation::Left(20)), 1);
+        assert_eq!(lock.current, 90);
+        assert_eq!(lock.rotate(&Rotation::Right(20)), 1);
+        assert_eq!(lock.current, 10);
+    }
+
+    #[test]
+    fn full_rotation_then_past_zero() {
         let mut lock = DialLock::new(50, 99);
-        lock.rotate(&Rotation::Right(300));
-        assert_eq!(lock.current, 50);
-        lock.rotate(&Rotation::Left(300));
-        assert_eq!(lock.current, 50);
+        assert_eq!(lock.rotate(&Rotation::Right(155)), 2);
+        assert_eq!(lock.current, 5);
+
+        let mut lock = DialLock::new(50, 99);
+        assert_eq!(lock.rotate(&Rotation::Left(155)), 2);
+        assert_eq!(lock.current, 95);
+    }
+
+    #[test]
+    fn full_rotation_then_to_zero() {
+        let mut lock = DialLock::new(50, 99);
+        assert_eq!(lock.rotate(&Rotation::Left(150)), 1);
+        assert_eq!(lock.current, 0);
+
+        let mut lock = DialLock::new(50, 99);
+        assert_eq!(lock.rotate(&Rotation::Right(150)), 1);
+        assert_eq!(lock.current, 0)
     }
 
     #[test]
@@ -129,12 +205,31 @@ L82
         let instructions = DialInstructions::parse(EXAMPLE1).unwrap();
         let mut lock = DialLock::new(50, 99);
         let mut counter = 0;
-        instructions.apply_to_lock_with_fn(&mut lock, |num| {
+        instructions.apply_to_lock_with_fn(&mut lock, |num, _resets| {
             if num == 0 {
                 counter += 1;
             }
         });
 
         assert_eq!(counter, 3)
+    }
+
+    #[test]
+    fn solution_2() {
+        let instructions = DialInstructions::parse(EXAMPLE1).unwrap();
+        let mut lock = DialLock::new(50, 99);
+        let mut counter = 0;
+
+        instructions.apply_to_lock_with_fn(&mut lock, |num, resets| {
+            counter += resets;
+
+            if num == 0 {
+                counter += 1;
+            }
+
+            println!("Count: {counter}")
+        });
+
+        assert_eq!(counter, 6);
     }
 }
