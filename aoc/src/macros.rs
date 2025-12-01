@@ -17,7 +17,9 @@ macro_rules! day {
     ($day:tt, $fn:ident, $inputs:ident) => {{
         println!("# Day {}", $day);
         time!(format!("Day {}", $day), {
-            $fn(&$inputs[$day - 1]);
+            $fn(&$inputs
+                .get($day - 1)
+                .expect(&format!("Failed to get input for day {}", $day)));
         });
         println!("-----");
     }};

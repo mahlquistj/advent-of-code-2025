@@ -21,7 +21,19 @@ fn main() {
 }
 
 fn day1(input: &str) {
-    println!("Not done yet");
+    let mut lock = day1::DialLock::new(50, 99);
+    let instructions = day1::DialInstructions::parse(input).unwrap();
+
+    // Solution 1
+    let mut counter = 0;
+    time!("day1#1", {
+        instructions.apply_to_lock_with_fn(&mut lock, |current| {
+            if current == 0 {
+                counter += 1;
+            }
+        });
+    });
+    println!("Solution 1: {}", counter);
 }
 
 fn day2(input: &str) {
