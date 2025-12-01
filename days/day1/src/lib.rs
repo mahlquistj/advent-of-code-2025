@@ -30,11 +30,9 @@ impl DialInstructions {
     where
         F: FnMut(i16, i16),
     {
-        println!("INIT: {lock:#?}");
         self.instructions.iter().for_each(|rotation| {
             let resets = lock.rotate(rotation);
             let current = lock.current;
-            println!("{rotation:?} | Lock: {current} | Resets: {resets}");
             f(current, resets);
         });
     }
@@ -226,8 +224,6 @@ L82
             if num == 0 {
                 counter += 1;
             }
-
-            println!("Count: {counter}")
         });
 
         assert_eq!(counter, 6);
