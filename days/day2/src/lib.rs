@@ -1,5 +1,8 @@
 use std::{num::ParseIntError, ops::RangeInclusive};
 
+pub type Id = u64;
+const BASE: Id = 10;
+
 #[derive(Debug)]
 pub enum ParseError {
     ParseInt(ParseIntError),
@@ -10,8 +13,6 @@ impl From<ParseIntError> for ParseError {
         Self::ParseInt(value)
     }
 }
-
-pub type Id = u64;
 
 #[derive(Debug, Clone, Copy, Hash)]
 pub struct IdRange {
@@ -84,31 +85,43 @@ fn is_angel_number(n: &Id, digits: u64) -> bool {
         return false;
     }
 
-    // We can always ensure that the divide will work here, since the digits are
-    // even
-    let s = n.to_string();
-    let (a, b) = s.split_at((digits / 2) as usize);
-    a == b
+    let exp = (digits / 2) as u32;
+    let base = BASE.pow(exp);
+    let pattern = n % base;
+    let removed = n - pattern;
+    let b_pattern = removed / base;
+
+    pattern == b_pattern
 }
 
 #[inline(always)]
 fn is_invalid_id(n: &Id, digits: u64) -> bool {
     let max = digits / 2;
-    let mut s = n.to_string();
 
-    unsafe {
-        (1..=max).rev().any(|chunk_size| {
-            // Avoid uneven splits
-            if !digits.is_multiple_of(chunk_size) {
+    (1..=max).rev().any(|chunk_size| {
+        // Avoid uneven splits
+        if !digits.is_multiple_of(chunk_size) {
+            return false;
+        }
+
+        let base = BASE.pow(chunk_size as u32);
+        let pattern = n % base;
+        let mut remainder = (n - pattern) / base;
+
+        if remainder == 0 {
+            return false;
+        }
+
+        while remainder != 0 {
+            let b_pattern = remainder % base;
+            if b_pattern != pattern {
                 return false;
             }
+            remainder = (remainder - b_pattern) / base;
+        }
 
-            let mut iter = s.as_mut_vec().chunks(chunk_size as usize);
-            let first = iter.next();
-
-            iter.all(|chunk| first.is_some_and(|first| chunk == first))
-        })
-    }
+        true
+    })
 }
 
 #[cfg(test)]
@@ -121,6 +134,23 @@ mod tests {
     fn test_count_digits() {
         assert_eq!(count_digits(1300), 4);
         assert_eq!(count_digits(130293), 6);
+    }
+
+    #[test]
+    fn test_invalid_id() {
+        assert!(is_invalid_id(&11, 2));
+        assert!(is_invalid_id(&22, 2));
+        assert!(is_invalid_id(&99, 2));
+        assert!(is_invalid_id(&111, 3));
+        assert!(is_invalid_id(&999, 3));
+        assert!(is_invalid_id(&1010, 4));
+        assert!(is_invalid_id(&222222, 6));
+        assert!(is_invalid_id(&446446, 6));
+        assert!(is_invalid_id(&565656, 6));
+        assert!(is_invalid_id(&38593859, 8));
+        assert!(is_invalid_id(&824824824, 9));
+        assert!(is_invalid_id(&2121212121, 10));
+        assert!(is_invalid_id(&1188511885, 10));
     }
 
     #[test]
