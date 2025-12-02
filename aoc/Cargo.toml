@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 day1 = { path = "../days/day1" }
+day2 = { path = "../days/day2" }

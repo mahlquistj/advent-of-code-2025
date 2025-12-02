@@ -50,8 +50,14 @@ fn day1(input: &str) {
     println!("Solution 2: {}", counter);
 }
 
-fn day2(_input: &str) {
-    println!("Not done yet");
+fn day2(input: &str) {
+    let checker = time!("day2#parse", { day2::IdChecker::from_ids(input).unwrap() });
+
+    let angel_numbers_sum = time!("day2#1", { checker.sum_angel_numbers() });
+    println!("Solution 1: {angel_numbers_sum}");
+
+    let invalid_ids_sum = time!("day2#2", { checker.sum_invalid_ids() });
+    println!("Solution 2: {invalid_ids_sum}");
 }
 
 fn day3(_input: &str) {
