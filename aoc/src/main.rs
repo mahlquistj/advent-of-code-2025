@@ -1,9 +1,12 @@
+use std::str::FromStr;
+
 mod macros;
 
 fn main() {
     println!("Advent of Code 2025 solutions");
     let inputs = time!("Get inputs", { get_inputs!() });
     println!("----");
+
     time!("All", {
         day!(1, day1, inputs);
         day!(2, day2, inputs);
@@ -60,8 +63,16 @@ fn day2(input: &str) {
     println!("Solution 2: {invalid_ids_sum}");
 }
 
-fn day3(_input: &str) {
-    println!("Not done yet");
+fn day3(input: &str) {
+    let emergency_power = time!("day3#parse", {
+        day3::EmergencyPower::from_str(input).unwrap()
+    });
+
+    let max_joltage = time!("day3#1", { emergency_power.max_joltage() });
+    println!("Solution 1: {max_joltage}");
+
+    let max_joltage_unsafe = time!("day3#2", { emergency_power.max_joltage_unsafe::<12>() });
+    println!("Solution 2: {max_joltage_unsafe}");
 }
 
 fn day4(_input: &str) {

@@ -27,17 +27,21 @@ macro_rules! day {
 
 #[macro_export]
 macro_rules! get_inputs {
-    () => {
-        std::fs::read_dir("inputs")
+    () => {{
+        let mut __files = std::fs::read_dir("inputs")
             .expect("Failed to read inputs directory")
             .map(|entry| {
-                std::fs::read_to_string(
-                    entry
-                        .expect("Failed to get entries in input directory")
-                        .path(),
-                )
-                .expect("Failed to read entries in input directory")
+                entry
+                    .expect("Failed to get entries in input directory")
+                    .path()
+            })
+            .collect::<Vec<_>>();
+        __files.sort();
+        __files
+            .iter()
+            .map(|path| {
+                std::fs::read_to_string(path).expect("Failed to read entries in input directory")
             })
             .collect::<Vec<String>>()
-    };
+    }};
 }
