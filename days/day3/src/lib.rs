@@ -36,15 +36,17 @@ impl FromStr for EmergencyPower {
 }
 
 impl EmergencyPower {
+    #[inline(always)]
     pub fn max_joltage_unsafe<const AMOUNT: usize>(&self) -> Joltage {
         self.banks
             .iter()
-            .map(BatteryBank::max_joltage_unsafe::<AMOUNT>)
+            .map(BatteryBank::max_joltage::<AMOUNT>)
             .sum()
     }
 
+    #[inline(always)]
     pub fn max_joltage(&self) -> Joltage {
-        self.banks.iter().map(BatteryBank::max_joltage).sum()
+        self.banks.iter().map(BatteryBank::max_joltage::<2>).sum()
     }
 }
 
@@ -67,7 +69,7 @@ impl FromStr for BatteryBank {
 }
 
 impl BatteryBank {
-    pub fn max_joltage_unsafe<const AMOUNT: usize>(&self) -> Joltage {
+    pub fn max_joltage<const AMOUNT: usize>(&self) -> Joltage {
         let joltages = self.batteries.windows(AMOUNT).fold(
             [MIN_JOLTAGE; AMOUNT],
             |mut joltages, battery_joltages| {
@@ -95,26 +97,6 @@ impl BatteryBank {
                 jolt * multiplier
             })
             .sum()
-    }
-
-    pub fn max_joltage(&self) -> Joltage {
-        let [first_max, second_max] =
-            self.batteries
-                .windows(2)
-                .fold([MIN_JOLTAGE; 2], |mut joltages, battery_joltages| {
-                    if joltages[0] < battery_joltages[0] {
-                        joltages[0] = battery_joltages[0];
-                        joltages[1] = MIN_JOLTAGE;
-                    }
-
-                    if joltages[1] < battery_joltages[1] {
-                        joltages[1] = battery_joltages[1];
-                    }
-
-                    joltages
-                });
-
-        (first_max * 10) + second_max
     }
 }
 
