@@ -75,8 +75,18 @@ fn day3(input: &str) {
     println!("Solution 2: {max_joltage_unsafe}");
 }
 
-fn day4(_input: &str) {
-    println!("Not done yet");
+fn day4(input: &str) {
+    let mut storage_room = time!("day4#parse", {
+        day4::StorageRoom::from_str(input).unwrap()
+    });
+
+    let accessible_rolls = time!("day4#1", { storage_room.count_accessible_paper_rolls() });
+    println!("Solution 1: {accessible_rolls}");
+
+    let all_accessible_rolls = time!("day4#2", {
+        storage_room.count_accessible_paper_rolls_incrementally()
+    });
+    println!("Solution 2: {all_accessible_rolls}");
 }
 
 fn day5(_input: &str) {
