@@ -89,8 +89,14 @@ fn day4(input: &str) {
     println!("Solution 2: {all_accessible_rolls}");
 }
 
-fn day5(_input: &str) {
-    println!("Not done yet");
+fn day5(input: &str) {
+    let database = time!("day5#parse", { day5::Database::from_str(input).unwrap() });
+
+    let fresh_ingredients = time!("day5#1", { database.count_fresh_ingredients() });
+    println!("Solution 1: {fresh_ingredients}");
+
+    let fresh_ingredient_ids = time!("day5#2", { database.count_fresh_ids() });
+    println!("Solution 2: {fresh_ingredient_ids}");
 }
 
 fn day6(_input: &str) {
