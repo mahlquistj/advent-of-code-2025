@@ -105,7 +105,7 @@ fn day6(input: &str) {
     let horizontal_sum = time!("day6#1", { worksheet.solve_horizontal_problems_and_sum() });
     println!("Solution 1: {horizontal_sum}");
 
-    let vertical_sum = time!("day6#1", { worksheet.solve_vertical_problems_and_sum() });
+    let vertical_sum = time!("day6#2", { worksheet.solve_vertical_problems_and_sum() });
     println!("Solution 2: {vertical_sum}");
 }
 

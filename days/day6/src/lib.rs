@@ -69,34 +69,34 @@ impl FromStr for Worksheet {
             })
             .collect::<Result<Vec<Vec<_>>, ParseIntError>>()?;
 
-        let columns = lines.first().map(|numbers| numbers.len()).unwrap_or(0);
+        let columns = lines.first().map(|line| line.len()).unwrap_or(0);
 
-        let vertical_numbers = (0..columns)
-            .filter_map(|col| {
-                let mut numbers: Vec<Number> = vec![];
+        let mut vertical_numbers = vec![Vec::new(); instructions.len()];
+        let mut instruction_idx = 0;
+        (0..columns).try_for_each(|col| {
+            let mut number = String::new();
 
-                for line in &lines {
-                    let mut number = String::new();
+            // Push each number from the column in reversed order
+            for line in lines.iter() {
+                number.push_str(&line[col..col + 1])
+            }
 
-                    let trimmed = number.trim();
+            // Trim the string
+            let trimmed = number.trim();
 
-                    if trimmed.is_empty() {
-                        break;
-                    } else {
-                        match trimmed.parse() {
-                            Ok(n) => numbers.push(n),
-                            Err(error) => return Some(Err(error)),
-                        }
-                    }
+            if trimmed.is_empty() {
+                // If it's empty, increment the instruction, and continue
+                instruction_idx += 1;
+            } else {
+                // Parse and push the string
+                match trimmed.parse() {
+                    Ok(n) => vertical_numbers.get_mut(instruction_idx).unwrap().push(n),
+                    Err(error) => return Err(error),
                 }
+            }
 
-                if numbers.is_empty() {
-                    None
-                } else {
-                    Some(Ok(numbers))
-                }
-            })
-            .collect::<Result<Vec<Vec<Number>>, ParseIntError>>()?;
+            Ok(())
+        })?;
 
         Ok(Self {
             vertical_numbers,
@@ -125,53 +125,19 @@ impl Worksheet {
     }
 
     pub fn solve_vertical_problems_and_sum(&self) -> Number {
-        const BASE: Number = 10;
-
         self.instructions
             .iter()
             .enumerate()
             .map(|(col, instruction)| {
-                let mut numbers = vec![];
-
-                self.vertical_numbers.iter().rev().for_each(|row| {
-                    let mut number = row[col];
-                    let mut digit_idx = 0;
-
-                    println!("Parsing: {number}");
-
-                    while number != 0 {
-                        let n = number % BASE;
-                        if let Some((digit, exp)) = numbers.get_mut(digit_idx as usize) {
-                            *exp *= BASE;
-                            // *digit += n;
-                            let x = dbg!(*digit + (n * *exp));
-                            *digit = x;
-                        } else {
-                            println!("Pushing: {n}");
-                            numbers.push((n, BASE));
-                        };
-
-                        number /= BASE;
-                        digit_idx += 1;
-                        println!("Numbers: {numbers:?}")
-                    }
-
-                    println!("Numbers: {numbers:?}")
-                });
-
-                println!("Final: numbers: {numbers:?}");
-
                 let init = if let Instruction::Add = instruction {
                     0
                 } else {
                     1
                 };
 
-                dbg!(
-                    numbers
-                        .into_iter()
-                        .fold(init, |acc, (number, _)| instruction.solve(acc, number))
-                )
+                self.vertical_numbers[col]
+                    .iter()
+                    .fold(init, |acc, number| instruction.solve(acc, *number))
             })
             .sum()
     }
