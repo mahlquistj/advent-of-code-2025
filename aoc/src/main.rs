@@ -99,8 +99,14 @@ fn day5(input: &str) {
     println!("Solution 2: {fresh_ingredient_ids}");
 }
 
-fn day6(_input: &str) {
-    println!("Not done yet");
+fn day6(input: &str) {
+    let worksheet = time!("day6#parse", { day6::Worksheet::from_str(input).unwrap() });
+
+    let horizontal_sum = time!("day6#1", { worksheet.solve_horizontal_problems_and_sum() });
+    println!("Solution 1: {horizontal_sum}");
+
+    let vertical_sum = time!("day6#1", { worksheet.solve_vertical_problems_and_sum() });
+    println!("Solution 2: {vertical_sum}");
 }
 
 fn day7(_input: &str) {
