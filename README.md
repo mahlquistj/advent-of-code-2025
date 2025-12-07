@@ -35,5 +35,10 @@ should be ordered, so calling them `day1.txt`, `day2.txt`, etc.. Should suffice.
 [TIMING] 'day6#2' took: 6.883µs
 
 # Day 7
+[TIMING] 'day7#parse' took: 25.578µs
+[TIMING] 'day7#1' took: 45.345µs
+[TIMING] 'day7#2' took: 43.763µs
+
+# Day 8
 TBD
 ```

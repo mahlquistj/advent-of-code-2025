@@ -109,8 +109,16 @@ fn day6(input: &str) {
     println!("Solution 2: {vertical_sum}");
 }
 
-fn day7(_input: &str) {
-    println!("Not done yet");
+fn day7(input: &str) {
+    let manifold = time!("day7#parse", {
+        day7::TachyonManifold::from_str(input).unwrap()
+    });
+
+    let beam_splits = time!("day7#1", { manifold.calculate_beam_splits() });
+    println!("Solution 1: {beam_splits}");
+
+    let timelines = time!("day7#2", { manifold.calculate_beam_timelines() });
+    println!("Solution 2: {timelines}");
 }
 
 fn day8(_input: &str) {
