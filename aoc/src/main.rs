@@ -121,8 +121,16 @@ fn day7(input: &str) {
     println!("Solution 2: {timelines}");
 }
 
-fn day8(_input: &str) {
-    println!("Not done yet");
+fn day8(input: &str) {
+    let boxes = time!("day8#parse", {
+        day8::JunctionBoxes::from_str(input).unwrap()
+    });
+
+    let circuits_sum = time!("day8#1", { boxes.find_connections(1000) });
+    println!("Solution 1: {circuits_sum}");
+
+    let last_connection_distance = time!("day8#2", { boxes.find_last_distance() });
+    println!("Solution 2: {last_connection_distance}");
 }
 
 fn day9(_input: &str) {
