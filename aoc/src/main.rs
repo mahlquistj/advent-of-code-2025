@@ -133,8 +133,14 @@ fn day8(input: &str) {
     println!("Solution 2: {last_connection_distance}");
 }
 
-fn day9(_input: &str) {
-    println!("Not done yet");
+fn day9(input: &str) {
+    let floor = time!("day9#parse", { day9::Floor::from_str(input).unwrap() });
+
+    let largest_area = time!("day9#1", { floor.find_largest_area(false) });
+    println!("Solution 1: {largest_area}");
+
+    let largest_area = time!("day9#2", { floor.find_largest_area(true) });
+    println!("Solution 2: {largest_area}");
 }
 
 fn day10(_input: &str) {
