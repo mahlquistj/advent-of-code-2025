@@ -14,6 +14,54 @@ impl From<ParseIntError> for ParseError {
 
 type Number = isize;
 
+struct UnionFind {
+    parent: Vec<usize>,
+    rank: Vec<usize>,
+    size: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        Self {
+            parent: (0..n).collect(),
+            rank: vec![0; n],
+            size: vec![1; n],
+        }
+    }
+
+    #[inline]
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]);
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) -> bool {
+        let px = self.find(x);
+        let py = self.find(y);
+
+        if px == py {
+            return false; // Already in same set
+        }
+
+        // Union by rank
+        if self.rank[px] < self.rank[py] {
+            self.parent[px] = py;
+            self.size[py] += self.size[px];
+        } else if self.rank[px] > self.rank[py] {
+            self.parent[py] = px;
+            self.size[px] += self.size[py];
+        } else {
+            self.parent[py] = px;
+            self.size[px] += self.size[py];
+            self.rank[px] += 1;
+        }
+        true
+    }
+
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Position {
     x: Number,
@@ -41,13 +89,16 @@ impl FromStr for Position {
 }
 
 #[inline(always)]
-fn euclidean_distance(p1: &Position, p2: &Position) -> Number {
-    ((p2.x - p1.x).pow(2) + (p2.y - p1.y).pow(2) + (p2.z - p1.z).pow(2)).isqrt()
+fn squared_distance(p1: &Position, p2: &Position) -> Number {
+    let dx = p2.x - p1.x;
+    let dy = p2.y - p1.y;
+    let dz = p2.z - p1.z;
+    dx * dx + dy * dy + dz * dz
 }
 
 pub struct JunctionBoxes {
-    // Distance -> Position-pairs
-    distances: BTreeMap<Number, Vec<[Position; 2]>>,
+    // Distance -> index pairs (instead of full Position structs)
+    distances: BTreeMap<Number, Vec<(usize, usize)>>,
     boxes: Vec<Position>,
 }
 
@@ -61,19 +112,15 @@ impl FromStr for JunctionBoxes {
             .collect::<Result<Vec<_>, _>>()?;
 
         let mut distances = BTreeMap::new();
-        let mut counter = 0;
 
-        while counter < boxes.len() {
-            let current = &boxes[counter];
-            for b in boxes[(counter + 1)..].iter() {
-                let distance = euclidean_distance(current, b);
+        for i in 0..boxes.len() {
+            for j in (i + 1)..boxes.len() {
+                let distance = squared_distance(&boxes[i], &boxes[j]);
                 distances
                     .entry(distance)
-                    .and_modify(|pairs: &mut Vec<[Position; 2]>| pairs.push([*current, *b]))
-                    .or_insert_with(|| vec![[*current, *b]]);
+                    .or_insert_with(Vec::new)
+                    .push((i, j));
             }
-
-            counter += 1;
         }
 
         Ok(Self { distances, boxes })
@@ -82,77 +129,50 @@ impl FromStr for JunctionBoxes {
 
 impl JunctionBoxes {
     pub fn find_connections(&self, iterations: usize) -> usize {
-        let mut circuits: Vec<Vec<Position>> = self.boxes.iter().map(|b| vec![*b]).collect();
+        let mut uf = UnionFind::new(self.boxes.len());
         let mut counter = 0;
 
-        'a: for pairs in self.distances.values() {
-            for pair in pairs {
+        'outer: for pairs in self.distances.values() {
+            for &(i, j) in pairs {
+                uf.union(i, j);
                 counter += 1;
 
                 if counter == iterations {
-                    break 'a;
+                    break 'outer;
                 }
-
-                let a_idx = circuits
-                    .iter()
-                    .enumerate()
-                    .find(|(_, circuit)| circuit.contains(&pair[0]))
-                    .unwrap()
-                    .0;
-
-                let mut a = circuits.remove(a_idx);
-
-                let Some(b) = circuits
-                    .iter_mut()
-                    .find(|circuit| circuit.contains(&pair[1]))
-                else {
-                    // Same circuit - Do nothing
-                    circuits.push(a);
-                    continue;
-                };
-
-                b.append(&mut a);
             }
         }
 
-        circuits.sort_by_key(|a| a.len());
+        // Find all unique roots and their component sizes
+        let mut sizes: Vec<usize> = (0..self.boxes.len())
+            .filter_map(|i| {
+                if uf.find(i) == i {
+                    Some(uf.size[i])
+                } else {
+                    None
+                }
+            })
+            .collect();
 
-        circuits.pop().unwrap().len()
-            * circuits.pop().unwrap().len()
-            * circuits.pop().unwrap().len()
+        sizes.sort_unstable();
+        sizes.reverse();
+
+        sizes[0] * sizes[1] * sizes[2]
     }
 
     pub fn find_last_distance(&self) -> isize {
-        let mut circuits: Vec<Vec<Position>> = self.boxes.iter().map(|b| vec![*b]).collect();
-        let mut last_connection: [Position; 2] = [Position { x: 0, y: 0, z: 0 }; 2];
+        let mut uf = UnionFind::new(self.boxes.len());
+        let mut last_pair = (0, 0);
 
         for pairs in self.distances.values() {
-            for pair in pairs {
-                let a_idx = circuits
-                    .iter()
-                    .enumerate()
-                    .find(|(_, circuit)| circuit.contains(&pair[0]))
-                    .unwrap()
-                    .0;
-
-                let mut a = circuits.remove(a_idx);
-
-                let Some(b) = circuits
-                    .iter_mut()
-                    .find(|circuit| circuit.contains(&pair[1]))
-                else {
-                    // Same circuit - Do nothing
-                    circuits.push(a);
-                    continue;
-                };
-
-                b.append(&mut a);
-
-                last_connection = *pair;
+            for &(i, j) in pairs {
+                if uf.union(i, j) {
+                    last_pair = (i, j);
+                }
             }
         }
 
-        last_connection[0].x * last_connection[1].x
+        self.boxes[last_pair.0].x * self.boxes[last_pair.1].x
     }
 }
 

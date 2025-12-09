@@ -22,6 +22,7 @@ struct Rect {
 }
 
 impl Rect {
+    #[inline(always)]
     fn new(p1: Tile, p2: Tile) -> Self {
         Self {
             min_x: p1.x.min(p2.x),
@@ -31,6 +32,7 @@ impl Rect {
         }
     }
 
+    #[inline(always)]
     fn intersects_with(&self, other: &Self) -> bool {
         self.min_x < other.max_x
             && self.max_x > other.min_x
@@ -38,6 +40,7 @@ impl Rect {
             && self.max_y > other.min_y
     }
 
+    #[inline(always)]
     fn area(&self) -> Number {
         (self.min_x.abs_diff(self.max_x) + 1) * (self.min_y.abs_diff(self.max_y) + 1)
     }
@@ -52,6 +55,7 @@ pub struct Tile {
 impl FromStr for Tile {
     type Err = ParseError;
 
+    #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut numbers = s.split(",");
         let x = numbers.next().ok_or(ParseError::InvalidPosition)?.parse()?;
@@ -62,6 +66,7 @@ impl FromStr for Tile {
 
 pub struct Floor {
     tiles: Vec<Tile>,
+    edges: Vec<Rect>,
 }
 
 impl FromStr for Floor {
@@ -72,26 +77,23 @@ impl FromStr for Floor {
             .lines()
             .map(Tile::from_str)
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(Self { tiles })
+
+        let mut edges: Vec<Rect> = tiles.windows(2).map(|t| Rect::new(t[0], t[1])).collect();
+
+        edges.push(
+            tiles
+                .first()
+                .map(|t1| Rect::new(*t1, *tiles.last().unwrap()))
+                .unwrap(),
+        );
+
+        Ok(Self { tiles, edges })
     }
 }
 
 impl Floor {
     pub fn find_largest_area(&self, check_intersect: bool) -> Number {
         let mut largest = 0;
-
-        let mut edges: Vec<Rect> = self
-            .tiles
-            .windows(2)
-            .map(|t| Rect::new(t[0], t[1]))
-            .collect();
-
-        edges.push(
-            self.tiles
-                .first()
-                .map(|t1| Rect::new(*t1, *self.tiles.last().unwrap()))
-                .unwrap(),
-        );
 
         for i in 0..(self.tiles.len() - 1) {
             for j in i..self.tiles.len() {
@@ -100,7 +102,7 @@ impl Floor {
                 let rect = Rect::new(r1, r2);
                 let area = rect.area();
 
-                if check_intersect && !check_intersections(&edges, &rect) {
+                if check_intersect && check_intersections(&self.edges, &rect) {
                     continue;
                 }
 
@@ -112,6 +114,7 @@ impl Floor {
     }
 }
 
+#[inline]
 fn check_intersections(edges: &Vec<Rect>, rect: &Rect) -> bool {
     for edge in edges {
         if rect.intersects_with(edge) {
